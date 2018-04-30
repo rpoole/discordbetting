@@ -16,17 +16,17 @@ contract DiscordBetting {
         mapping(address => Better) bets;
     }
 
-	address public owner;
+    address public owner;
     mapping(uint => Bet) public bets;
     uint private betIdCounter;
 
     event BetCreated(uint betId);
     event BetEnded(uint betId, bool won);
 
-	constructor() public {
-		owner = msg.sender;
+    constructor() public {
+        owner = msg.sender;
         betIdCounter = 0;
-	}
+    }
 
     modifier onlyOwner () {
         require(msg.sender == owner);
