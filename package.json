@@ -1,0 +1,25 @@
+{
+  "name": "garbage-token",
+  "version": "0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "ganache-cli": "^6.1.0",
+    "solc": "^0.4.23",
+    "truffle": "^4.1.7"
+  }
+  "jshintConfig": {
+    "bitwise": true,
+    "globalstrict": false,
+    "undef": true,
+    "unused": true,
+    "curly": true,
+    "devel": true,
+    "browser": true,
+    "jquery": true,
+    "newcap": false,
+    "jasmine": true,
+    "esnext": true,
+    "es6": true
+  },
+}
