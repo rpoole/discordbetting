@@ -1,10 +1,12 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
+// TODO 
+// - handle payouts
+// - handle expiration of bets
 contract DiscordBetting {
 
     struct Better {
-        address better;
-        bool win;
+        bool betOnWin;
         uint amount;
     }
 
@@ -13,19 +15,21 @@ contract DiscordBetting {
         uint numberOfBets;
         string information;
         bool active;
+        bool didWinHappen;
         mapping(address => Better) bets;
     }
 
     address public owner;
-    mapping(uint => Bet) public bets;
     uint private betIdCounter;
+    mapping(uint => Bet) public bets;
 
     event BetCreated(uint betId);
     event BetEnded(uint betId, bool won);
+    event Withdraw(uint betId, address recipient, uint amount);
 
     constructor() public {
         owner = msg.sender;
-        betIdCounter = 0;
+        betIdCounter = 1;
     }
 
     modifier onlyOwner () {
@@ -35,26 +39,44 @@ contract DiscordBetting {
 
     modifier validBetId (uint betId) {
         require(betId < betIdCounter);
-        Bet storage bet = bets[betId];
-        require (bet.active);
+        require (bets[betId].active);
         _;
     }
 
     function newBet(string betInformation) public onlyOwner {
-        bets[betIdCounter] = Bet({id: betIdCounter, information: betInformation, active: true, numberOfBets: 0});
+        bets[betIdCounter] = Bet(betIdCounter, 0, betInformation, true, false);
         emit BetCreated(betIdCounter);
         betIdCounter = betIdCounter + 1;
     }
 
-    function takeBet(uint betId, bool win, uint amount) public validBetId(betId) {
-        require(msg.sender != owner);
-
-        bets[betId].bets[msg.sender] = Better(msg.sender, win, amount);
-        bets[betId].numberOfBets = bets[betId].numberOfBets + 1;
+    function takeBet(uint betId, bool betOnWin, uint amount) public validBetId(betId) {
+        if (bets[betId].bets[msg.sender].amount == 0) {
+            bets[betId].numberOfBets = bets[betId].numberOfBets + 1;
+        }
+        bets[betId].bets[msg.sender] = Better(betOnWin, amount);
     }
 
     function endBet(uint betId, bool win) public onlyOwner validBetId(betId) {
-        delete bets[betId];
+        bets[betId].active = false;
+        bets[betId].didWinHappen = win;
         emit BetEnded(betId, win);
+    }
+
+    function getBetterAmountForBet(uint betId, address better) public onlyOwner constant returns (uint) {
+        return bets[betId].bets[better].amount;
+    }
+
+    function withdraw(uint betId) public {
+        require(bets[betId].id != 0);
+        require(!bets[betId].active);
+
+        Better storage b = bets[betId].bets[msg.sender];
+
+        require(b.amount > 0);
+        require(bets[betId].didWinHappen && b.betOnWin);
+
+        uint payAmount = b.amount * 2;
+        delete bets[betId].bets[msg.sender];
+        emit Withdraw(betId, msg.sender, payAmount);
     }
 }
