@@ -1,8 +1,5 @@
 pragma solidity ^0.4.23;
 
-// TODO 
-// - handle payouts
-// - handle expiration of bets
 contract DiscordBetting {
 
     struct Better {
@@ -22,6 +19,7 @@ contract DiscordBetting {
     address public owner;
     uint private betIdCounter;
     mapping(uint => Bet) public bets;
+    uint public balance;
 
     event BetCreated(uint betId);
     event BetEnded(uint betId, bool won);
@@ -54,6 +52,7 @@ contract DiscordBetting {
             bets[betId].numberOfBets = bets[betId].numberOfBets + 1;
         }
         bets[betId].bets[msg.sender] = Better(betOnWin, amount);
+        balance += amount;
     }
 
     function endBet(uint betId, bool win) public onlyOwner validBetId(betId) {
@@ -76,6 +75,7 @@ contract DiscordBetting {
         require(bets[betId].didWinHappen && b.betOnWin);
 
         uint payAmount = b.amount * 2;
+        balance = balance - payAmount;
         delete bets[betId].bets[msg.sender];
         emit Withdraw(betId, msg.sender, payAmount);
     }

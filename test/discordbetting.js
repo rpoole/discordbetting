@@ -17,102 +17,110 @@ contract('DiscordBetting', (accounts) => {
         instance = await DiscordBetting.new();
     });
 
-    it('should set the owner to the deployer of the contract', async () => {
-        let owner = await instance.owner.call();
-        assert.equal(owner, account0);
+    describe('constructor', async () => {
+        it('should set the owner to the deployer of the contract', async () => {
+            let owner = await instance.owner.call();
+            assert.equal(owner, account0);
+        });
     });
 
-    it('should allow only the owner to create new bets', async () => {
-        await assertRevert(instance.newBet('info', {from: account1}));
+    describe('newBet', async () => {
+        it('should allow only the owner to create new bets', async () => {
+            await assertRevert(instance.newBet('info', {from: account1}));
+        });
+
+        it('should create a new bet', async ()=> {
+            let result = await instance.newBet('info');
+            let id = result.logs[0].args.betId.toNumber();
+            let bet = structs.Bet(await instance.bets.call(id));
+            assert.equal(bet.information, 'info');
+        });
     });
 
-    it('should create a new bet', async ()=> {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-        let bet = structs.Bet(await instance.bets.call(id));
-        assert.equal(bet.information, 'info');
+    describe('takeBet', async () => {
+        let result;
+        let id;
+
+        beforeEach(async ()=> {
+            result = await instance.newBet('info');
+            id = result.logs[0].args.betId.toNumber();
+        });
+
+        it('should not take a bet if the bet is not active', async () => {
+            await instance.endBet(id, true);
+            assertRevert(instance.takeBet(id, true, 1));
+        });
+
+        describe('with a working bet', async () => {
+            let bet;
+
+            beforeEach(async () => {
+                await instance.takeBet(id, true, 1)
+                bet = structs.Bet(await instance.bets.call(id));
+            });
+
+            it('should not take a bet if the bet does not exist', async () => {
+                await assertRevert(instance.takeBet(2, true, 1));
+            });
+
+            it('should take a bet', async () => {
+                assert.equal(bet.numberOfBets, 1);
+            });
+
+            it('should increase the balance when a bet is taken', async () => {
+                let balance = (await instance.balance.call()).toNumber();
+                assert.equal(1, balance);
+            });
+
+            it('should override the current bet, but not increase total bets', async () => {
+                assert.equal(bet.numberOfBets, 1);
+
+                let betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
+                assert.equal(1, betterAmount);
+
+                await instance.takeBet(id, true, 2);
+
+                bet = structs.Bet(await instance.bets.call(id));
+                assert.equal(bet.numberOfBets, 1);
+
+                betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
+                assert.equal(2, betterAmount);
+            });
+
+            it('should increase the number of bets for a started bet', async () => {
+                await instance.takeBet(id, true, 1, {from: account1})
+
+                bet = structs.Bet(await instance.bets.call(id));
+                assert.equal(bet.numberOfBets, 2);
+            });
+        });
+
     });
 
-    it('should not take a bet from the owner', async ()=> {
-        await assertRevert(instance.takeBet(1, true, 1));
+    describe('endBet', async () => {
+        it('should end a bet', async () => {
+            let result = await instance.newBet('info');
+            let id = result.logs[0].args.betId.toNumber();
+
+            results = await instance.endBet(id, true);
+            assert.equal(id, results.logs[0].args.betId.toNumber());
+            assert.isOk(results.logs[0].args.won);
+
+            let bet = structs.Bet(await instance.bets.call(id));
+            assert.isOk(bet.didWinHappen);
+            assert.isNotOk(bet.active);
+        });
+
+        it('should allow only the owner to end bets', async () => {
+            let result = await instance.newBet('info');
+            let id = result.logs[0].args.betId.toNumber();
+            await assertRevert(instance.endBet(id, true, {from: account1}));
+        });
     });
 
-    it('should not take a bet if the bet does not exist', async ()=> {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-        await instance.takeBet(id, true, 1, {from: account1})
-        await assertRevert(instance.takeBet(2, true, 1, {from: account1}));
-    });
-
-    it('should not take a bet if the bet is not active', async () => {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-
-        await instance.endBet(id, true);
-        assertRevert(instance.takeBet(id, true, 1, {from: account1}));
-    });
-
-    it('should take a bet', async () => {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-        await instance.takeBet(id, true, 1);
-
-        let bet = structs.Bet(await instance.bets.call(id));
-        assert.equal(bet.numberOfBets, 1);
-    });
-
-    it('should override the current bet, but not increase total bets', async () => {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-        await instance.takeBet(id, true, 1);
-
-        let bet = structs.Bet(await instance.bets.call(id));
-        assert.equal(bet.numberOfBets, 1);
-
-        let betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
-        assert.equal(1, betterAmount);
-
-        await instance.takeBet(id, true, 2);
-
-        bet = structs.Bet(await instance.bets.call(id));
-        assert.equal(bet.numberOfBets, 1);
-
-        betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
-        assert.equal(2, betterAmount);
-    });
-
-    it('should increase the number of bets for a started bet', async () => {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-        await instance.takeBet(id, true, 1)
-        await instance.takeBet(id, true, 1, {from: account1})
-
-        let bet = structs.Bet(await instance.bets.call(id));
-        assert.equal(bet.numberOfBets, 2);
-    });
-
-    it('should end a bet', async () => {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-
-        results = await instance.endBet(id, true);
-        assert.equal(id, results.logs[0].args.betId.toNumber());
-        assert.isOk(results.logs[0].args.won);
-
-        let bet = structs.Bet(await instance.bets.call(id));
-        assert.isOk(bet.didWinHappen);
-        assert.isNotOk(bet.active);
-    });
-
-    it('should allow only the owner to end bets', async () => {
-        let result = await instance.newBet('info');
-        let id = result.logs[0].args.betId.toNumber();
-        await assertRevert(instance.endBet(id, true, {from: account1}));
-    });
-
-    describe('withdraws', async () => {
+    describe('withdraw', async () => {
         let betId;
-        let betAmount = 5;
+        const betAmount = 5;
 
         beforeEach(async () => {
             let result = await instance.newBet('info');
@@ -120,7 +128,7 @@ contract('DiscordBetting', (accounts) => {
             await instance.takeBet(betId, true, betAmount);
         });
 
-        it('should not allow a withdraw if there is no bet', async() => {
+        it('should not allow a withdraw if there is no bet', async () => {
             await assertRevert(instance.withdraw(0xdeadbeef));
         });
 
@@ -143,11 +151,20 @@ contract('DiscordBetting', (accounts) => {
             await assertRevert(instance.withdraw(betId));
         });
 
-        it('should withdraw winnings', async() => {
+        it('should withdraw winnings', async () => {
             await instance.endBet(betId, true);
             let result = await instance.withdraw(betId);
             let amount = result.logs[0].args.amount.toNumber();
             assert.equal(amount, betAmount*2);
+        });
+
+        it('should decrease the balance', async () => {
+            const betAmount2 = 1000;
+            await instance.takeBet(betId, false, betAmount2, {from: account1});
+            await instance.endBet(betId, true);
+            await instance.withdraw(betId);
+            const balance = (await instance.balance.call()).toNumber();
+            assert.equal(betAmount2 - betAmount, balance);
         });
     });
 });
