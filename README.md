@@ -1,3 +1,5 @@
+Install yarn: https://yarnpkg.com/en/
+
 To run contract tests (mac/linux):
 
 1. `yarn`
