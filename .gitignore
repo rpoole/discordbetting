@@ -6,3 +6,5 @@ node_modules/
 
 *.keystore
 *.pk
+
+web/.serverless/
