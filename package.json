@@ -5,7 +5,12 @@
   "license": "MIT",
   "devDependencies": {
     "ganache-cli": "^6.1.0",
+    "jest": "^22.4.3",
+    "serverless": "^1.27.0",
+    "serverless-dynamodb-local": "^0.2.30",
+    "serverless-offline": "^3.20.3",
     "solc": "^0.4.23",
+    "supertest": "^3.0.0",
     "truffle": "^4.1.7"
   },
   "jshintConfig": {
@@ -22,4 +27,14 @@
     "esnext": true,
     "es6": true
   },
+  "dependencies": {
+    "aws-sdk": "^2.232.1",
+    "discord.js": "^11.3.2",
+    "koa": "^2.5.1",
+    "koa-bodyparser": "^4.2.0",
+    "koa-router": "^7.4.0",
+    "serverless-http": "^1.5.5",
+    "truffle-contract": "^3.0.5",
+    "web3": "^0.20.1"
+  }
 }

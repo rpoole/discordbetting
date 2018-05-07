@@ -9,7 +9,7 @@ contract DiscordBetting {
 
     struct Bet {
         uint id;
-        uint numberOfBets;
+        uint numberOfBetters;
         string information;
         bool active;
         bool didWinHappen;
@@ -49,16 +49,16 @@ contract DiscordBetting {
 
     function takeBet(uint betId, bool betOnWin, uint amount) public validBetId(betId) {
         if (bets[betId].bets[msg.sender].amount == 0) {
-            bets[betId].numberOfBets = bets[betId].numberOfBets + 1;
+            bets[betId].numberOfBetters = bets[betId].numberOfBetters + 1;
         }
         bets[betId].bets[msg.sender] = Better(betOnWin, amount);
         balance += amount;
     }
 
-    function endBet(uint betId, bool win) public onlyOwner validBetId(betId) {
+    function endBet(uint betId, bool didWinHappen) public onlyOwner validBetId(betId) {
         bets[betId].active = false;
-        bets[betId].didWinHappen = win;
-        emit BetEnded(betId, win);
+        bets[betId].didWinHappen = didWinHappen;
+        emit BetEnded(betId, didWinHappen);
     }
 
     function getBetterAmountForBet(uint betId, address better) public onlyOwner constant returns (uint) {

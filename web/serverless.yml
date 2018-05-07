@@ -1,0 +1,93 @@
+service: discord-betting
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["DiscordBettingDynamoDBTable", "Arn" ] }
+  environment:
+    DB_TABLE: ${self:custom.tableName}
+
+
+functions:
+  app:
+    handler: index.handler
+    events: 
+      - http: ANY /
+      - http: 'ANY {proxy+}'
+  take_bet:
+    handler: index.handler
+    events:
+      - http: 'POST /take_bet'
+  new_bet:
+    handler: index.handler
+    events:
+      - http: 'PUT /new_bet'
+  end_bet:
+    handler: index.handler
+    events:
+      - http: 'POST /end_bet'
+  active_bets:
+    handler: index.handler
+    events:
+      - http: 'GET /active_bets'
+
+resources:
+  Resources:
+    DiscordBettingDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: ${self:custom.tableName}
+        KeySchema:
+          - AttributeName: betId
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: betId
+            AttributeType: S
+          - AttributeName: active
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        GlobalSecondaryIndexes: 
+          - IndexName: ActiveBetsIndex
+            KeySchema:
+              - AttributeName: active
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: UserBetsIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
+custom:
+  tableName: 'discord-betting-table-${self:provider.stage}'
+  dynamodb:
+    start:
+      migrate: true

@@ -64,7 +64,7 @@ contract('DiscordBetting', (accounts) => {
             });
 
             it('should take a bet', async () => {
-                assert.equal(bet.numberOfBets, 1);
+                assert.equal(bet.numberOfBetters, 1);
             });
 
             it('should increase the balance when a bet is taken', async () => {
@@ -73,7 +73,7 @@ contract('DiscordBetting', (accounts) => {
             });
 
             it('should override the current bet, but not increase total bets', async () => {
-                assert.equal(bet.numberOfBets, 1);
+                assert.equal(bet.numberOfBetters, 1);
 
                 let betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
                 assert.equal(1, betterAmount);
@@ -81,7 +81,7 @@ contract('DiscordBetting', (accounts) => {
                 await instance.takeBet(id, true, 2);
 
                 bet = structs.Bet(await instance.bets.call(id));
-                assert.equal(bet.numberOfBets, 1);
+                assert.equal(bet.numberOfBetters, 1);
 
                 betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
                 assert.equal(2, betterAmount);
@@ -91,7 +91,7 @@ contract('DiscordBetting', (accounts) => {
                 await instance.takeBet(id, true, 1, {from: account1})
 
                 bet = structs.Bet(await instance.bets.call(id));
-                assert.equal(bet.numberOfBets, 2);
+                assert.equal(bet.numberOfBetters, 2);
             });
         });
 
@@ -150,6 +150,8 @@ contract('DiscordBetting', (accounts) => {
             await instance.endBet(betId, true);
             await assertRevert(instance.withdraw(betId));
         });
+
+        it('should withdraw if game was lost and bet was on a loss');
 
         it('should withdraw winnings', async () => {
             await instance.endBet(betId, true);

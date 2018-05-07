@@ -10,7 +10,7 @@ let mapFields = (args, fields) => {
 
 module.exports = {
     Bet: (argsArray) => {
-        const fields = ['id', 'numberOfBets', 'information', 'active', 'didWinHappen'];
+        const fields = ['id', 'numberOfBetters', 'information', 'active', 'didWinHappen'];
         return mapFields(argsArray, fields);
     },
 };
