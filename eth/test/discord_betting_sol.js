@@ -4,7 +4,7 @@
  * For now, preconditions to ensure other reverts are not firing should be
  * included in the test
  */
-let assertRevert = require('./helpers/assertRevert');
+let assertRevert = require('./helpers/assert_revert');
 let structs = require('./helpers/structs');
 let DiscordBetting = artifacts.require('DiscordBetting');
 
