@@ -21,7 +21,7 @@ class DiscordBetting {
     }
 
     async takeBet(betId, betOnWin, amount) {
-        await this.instance.takeBet(betId, betOnWin, amount, {from: this.web3.eth.accounts[1], gas:4712388});
+        await this.instance.takeBet(betId, betOnWin, amount, {from: this.web3.eth.accounts[0], gas:4712388});
     }
 
     async endBet(betId, didWinHappen) {

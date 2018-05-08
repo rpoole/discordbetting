@@ -68,7 +68,8 @@ router.post('/take_bet', async (ctx) => {
     };
 
     await ctx.dynamoDb.update(dParams).promise();
-    ctx.status = 200;
+    ctx.status = 201;
+    ctx.body = 'bet taken';
 });
 
 router.put('/new_bet', async (ctx) => {
