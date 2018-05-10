@@ -13,6 +13,7 @@ const app = new Koa();
 const router = new Router();
 
 let db = null;
+const houseCoins = 10000000;
 
 app.use(async (ctx, next) => {
     try {
@@ -39,6 +40,19 @@ app.use( async (ctx, next) => {
 
 router.post('/take_bet', async (ctx) => {
     let params = ctx.requireParams('betTargetUserId', 'userId', 'amount', 'betOnWin');
+
+    if (!/^\d+$/.test(params.amount.toString())) {
+        throw Error('Amount must be a positive whole number');
+    }
+
+    if (params.amount * 4 > houseCoins) {
+        throw Error(`Unable to take your bet. Not enough house funds. Maximum bet is ${houseCoins/4}`);
+    }
+
+    let userBalance = await db.getUserBalance(params.userId);
+    if (userBalance - params.amount < -100) {
+        throw Error('Your balance cannot go below -100cc');
+    }
 
     let bet = await db.createOrGetBet(params.betTargetUserId);
 

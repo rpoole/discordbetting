@@ -57,13 +57,9 @@ resources:
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: balance
-            KeyType: RANGE
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
-          - AttributeName: balance
-            AttributeType: N
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1

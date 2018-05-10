@@ -178,6 +178,24 @@ class Database {
             return 0;
         });
     }
+
+    async getUserBalance(userId) {
+        const params = {
+            TableName: USERS_TABLE,
+            KeyConditionExpression: 'userId = :userId',
+            ExpressionAttributeValues: { 
+                ':userId': userId,
+            } ,
+        };
+
+        let balances = (await dynamoDb.query(params).promise()).Items;
+
+        if (balances.length === 0) {
+            return 0;
+        }
+
+        return balances[0].balance;
+    }
 }
 
 
