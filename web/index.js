@@ -1,22 +1,18 @@
+require('dotenv').config({path: '../.env'});
 const Koa = require('koa');
 const serverless = require('serverless-http');
 const Router = require('koa-router');
 const bodyParser = require('koa-bodyparser');
-const DiscordBetting = require('./discord_betting');
-const AWS = require('aws-sdk');
 const helpers = require('./helpers');
+const Discord = require("discord.js");
+const Database = require('./database');
+const users = require('../users.json');
 
+const hook = new Discord.WebhookClient(process.env.DISCORD_WEBHOOK_ID, process.env.DISCORD_WEBHOOK_TOKEN);
 const app = new Koa();
 const router = new Router();
 
-const DB_TABLE = process.env.DB_TABLE;
-
-AWS.config.update({
-  region: 'us-east-1',
-  accessKeyId: 'accessKeyId',
-  secretAccessKey: 'secretAccessKey',
-  endpoint: new AWS.Endpoint('http://localhost:8000'),
-});
+let db = null;
 
 app.use(async (ctx, next) => {
     try {
@@ -31,101 +27,60 @@ app.use(async (ctx, next) => {
 app.use(bodyParser());
 
 app.use( async (ctx, next) => {
-    ctx.dbContract = await new DiscordBetting().getInstance();
-    ctx.requireParams = helpers.requireParams.bind(ctx);
-    await next();
-});
+    if (!db) {
+        db = new Database();
+        await db.init();
+    }
 
-app.use( async (ctx, next) => {
-    ctx.dynamoDb = new AWS.DynamoDB.DocumentClient({
-        region: 'localhost',
-        endpoint: 'http://localhost:8000'
-    });
+    ctx.requireParams = helpers.requireParams.bind(ctx);
+
     await next();
 });
 
 router.post('/take_bet', async (ctx) => {
-    let params = ctx.requireParams('betId', 'userId', 'amount', 'betOnWin');
+    let params = ctx.requireParams('betTargetUserId', 'userId', 'amount', 'betOnWin');
 
-    await ctx.dbContract.takeBet(params.betId, params.betOnWin, params.amount);
+    let bet = await db.createOrGetBet(params.betTargetUserId);
 
-    const dParams = {
-        TableName: DB_TABLE,
-        Key: {
-            betId: params.betId,
-        },
-        UpdateExpression: 'set bets = list_append(bets, :better), betterIds = list_append(betterIds, :betterIdList)',
-        ConditionExpression: 'not contains (betterIds, :betterId)',
-        ExpressionAttributeValues: {
-            ':betterIdList': [params.userId],
-            ':betterId': params.userId,
-            ':better': [{
-                id: params.userId,
-                amount: params.amount,
-                betOnWin: params.betOnWin,
-            }],
-        }
-    };
+    await db.takeBet(bet.betId, params.betOnWin, params.amount, params.userId);
 
-    await ctx.dynamoDb.update(dParams).promise();
-    ctx.status = 201;
-    ctx.body = 'bet taken';
-});
-
-router.put('/new_bet', async (ctx) => {
-    let params = ctx.requireParams('betInfo', 'userId');
-    let betId = await ctx.dbContract.newBet(params.betInfo);
-
-    const dParams = {
-        TableName: DB_TABLE,
-        Item: {
-            betId: betId.toString(),
-            active: 'true',
-            betInfo: params.betInfo,
-            userId: params.userId,
-            bets: [],
-            betterIds: [],
-        },
-    };
-
-    await ctx.dynamoDb.put(dParams).promise();
     ctx.status = 200;
 });
 
 router.post('/end_bet', async (ctx) => {
-    let params = ctx.requireParams('betId', 'userId', 'didWinHappen');
+    let params = ctx.requireParams('betTargetUserId', 'didWinHappen');
 
-    await ctx.dbContract.endBet(params.betId, params.didWinHappen);
+    let bet = await db.endBet(params.betTargetUserId, params.didWinHappen, params.userId);
 
-    const dParams = {
-        TableName: DB_TABLE,
-        Key: {
-            betId: params.betId,
-        },
-        UpdateExpression: 'set active = :active',
-        ConditionExpression: 'userId = :userId',
-        ExpressionAttributeValues: {
-            ':userId': params.userId,
-            ':active': 'false'
-        }
-    };
+    const betTargetUserName = users[params.betTargetUserId].name;
+    const result = params.didWinHappen === 'true'? 'won' : 'lost';
 
-    await ctx.dynamoDb.update(dParams).promise();
+    let winnersStr = '\n**Winners**:\n';
+    let losersStr = '\n**Losers**:\n';
+    for (b of bet.bets) {
+        const name = users[b.userId].name;
+        const str = `\t${name} (${b.amount}cc)`;
+        b.betOnWin === params.didWinHappen ? winnersStr += str : losersStr += str;
+    }
+
+    hook.sendSlackMessage({
+        attachments: [{
+            pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! \:bowling:\n` + winnersStr + losersStr + '\n',
+            color: '#69553d',
+            footer_icon: 'https://www.cryptocompare.com/media/20275/etc2.png',
+            footer: `You may now bet on ${betTargetUserName}'s next game.`,
+        }],
+    });
+
     ctx.status = 200;
 });
 
-router.get('/active_bets', async (ctx) => {
-    const params = {
-        TableName: DB_TABLE,
-        IndexName: 'ActiveBetsIndex',
-        KeyConditionExpression: 'active = :active',
-        ExpressionAttributeValues: { 
-            ':active': 'true',
-        } ,
-    };
+router.get('/balances', async (ctx) => {
+    ctx.body = await db.getBalances();
+});
 
-    let result = await ctx.dynamoDb.query(params).promise();
-    ctx.body = result;
+router.get('/active_bets', async (ctx) => {
+    ctx.body = await db.activeBets();
 });
 
 app.use(router.routes());

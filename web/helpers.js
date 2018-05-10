@@ -11,7 +11,7 @@ module.exports = {
                 this.throw(400, `Missing ${param}`);
             }
 
-            params[param] = this.request.body[param].toString();
+            params[param] = this.request.body[param];
         }
 
         return params;
