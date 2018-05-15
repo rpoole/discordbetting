@@ -31,19 +31,19 @@ for (let [id, u] of Object.entries(users)) {
 
 client.on('message', async msg => {
 	let command = msg.content.split(' ')[0].substring(1);
-        //const embed = msg.embeds[0];
-        //const isWin = embed.title.includes('Win');
+    //const embed = msg.embeds[0];
+    //const isWin = embed.title.includes('Win');
 
-    let playerNames = [];
-    let content = msg.content.split('\n');
-    // remove first line and last line
-    content.shift();
-    content.pop();
+    //let playerNames = [];
+    //let content = msg.content.split('\n');
+    //// remove first line and last line
+    //content.shift();
+    //content.pop();
 
-    let secondColStart = content.shift().indexOf('Hero');
-    let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim()] );
+    //let secondColStart = content.shift().indexOf('Hero');
+    //let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim()] );
 
-    await gameEnded(playerIds, true);
+    //await gameEnded(playerIds, true);
 
 	if (!commands.includes(command)) {
 		return;

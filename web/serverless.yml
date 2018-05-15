@@ -2,7 +2,7 @@ service: discord-betting
 
 provider:
   name: aws
-  runtime: nodejs6.10
+  runtime: nodejs8.10
   stage: dev
   region: us-east-1
   iamRoleStatements:
@@ -21,32 +21,32 @@ provider:
     DB_TABLE: ${self:custom.discordBettingTableName}
     USERS_TABLE: ${self:custom.usersTableName}
 
-functions:
-  app:
-    handler: index.handler
-    events: 
-      - http: ANY /
-      - http: 'ANY {proxy+}'
-  take_bet:
-    handler: index.handler
-    events:
-      - http: 'POST /take_bet'
-  new_bet:
-    handler: index.handler
-    events:
-      - http: 'PUT /new_bet'
-  active_bets:
-    handler: index.handler
-    events:
-      - http: 'GET /active_bets'
-  balances:
-    handler: index.handler
-    events:
-      - http: 'GET /balances'
-  game_ended:
-    handler: index.handler
-    events:
-      - http: 'POST /game_ended'
+#functions:
+  #app:
+    #handler: index.handler
+    #events: 
+      #- http: ANY /
+      #- http: 'ANY {proxy+}'
+  #take_bet:
+    #handler: index.handler
+    #events:
+      #- http: 'POST /take_bet'
+  #new_bet:
+    #handler: index.handler
+    #events:
+      #- http: 'PUT /new_bet'
+  #active_bets:
+    #handler: index.handler
+    #events:
+      #- http: 'GET /active_bets'
+  #balances:
+    #handler: index.handler
+    #events:
+      #- http: 'GET /balances'
+  #game_ended:
+    #handler: index.handler
+    #events:
+      #- http: 'POST /game_ended'
 
 resources:
   Resources:

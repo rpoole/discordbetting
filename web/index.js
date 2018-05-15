@@ -1,4 +1,5 @@
-require('dotenv').config({path: '../.env'});
+require('dotenv').config({path: '.env'});
+
 const Koa = require('koa');
 const serverless = require('serverless-http');
 const Router = require('koa-router');
@@ -13,6 +14,12 @@ const app = new Koa();
 const router = new Router();
 
 let db = null;
+
+const isServerless = process.env.SERVERLESS === 'true';
+if (!isServerless) {
+    const logger = require('koa-logger');
+    app.use(logger());
+}
 
 app.use(async (ctx, next) => {
     try {
@@ -153,5 +160,8 @@ router.get('/active_bets', async (ctx) => {
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-module.exports.handler = serverless(app);
-module.exports.app = app;
+if (!isServerless) {
+    app.listen(3001);
+} else {
+    module.exports.handler = serverless(app);
+}
