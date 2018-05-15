@@ -1,11 +1,19 @@
 {
     "111618891402182656": {
-        "name": "Zack"
+        "name": "Zack",
+        "nickNames": [
+            "Zack Stack",
+            "Zack Smurf"
+        ]
     },
     "111617403556757504": {
         "name": "Rob"
     },
     "111616548510158848": {
-        "name": "Ralph"
+        "name": "Ralph",
+        "nickNames": [
+            "Ralfbot",
+            "Juicebox"
+        ]
     }
 }

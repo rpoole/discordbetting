@@ -35,10 +35,6 @@ functions:
     handler: index.handler
     events:
       - http: 'PUT /new_bet'
-  end_bet:
-    handler: index.handler
-    events:
-      - http: 'POST /end_bet'
   active_bets:
     handler: index.handler
     events:
@@ -47,6 +43,10 @@ functions:
     handler: index.handler
     events:
       - http: 'GET /balances'
+  game_ended:
+    handler: index.handler
+    events:
+      - http: 'POST /game_ended'
 
 resources:
   Resources:

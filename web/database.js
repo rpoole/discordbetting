@@ -110,30 +110,19 @@ class Database {
         return (await dynamoDb.query(params).promise()).Items;
     }
 
-    async endBet(betTargetUserId, didWinHappen) {
-        let activeBets = await this.activeBetFor(betTargetUserId);
-
-        if (activeBets.length !== 1) {
-            throw Error('No active bets');
-        }
-
-        let bet = activeBets[0];
-        const betId = bet.betId;
-
-        await this.dbContract.endBet(betId, didWinHappen);
+    async endBet(bet, didWinHappen) {
+        await this.dbContract.endBet(bet.betId, didWinHappen);
 
         const params = {
             TableName: DB_TABLE,
             Key: {
-                betId: betId,
+                betId: bet.betId,
             },
             UpdateExpression: 'set active = :active',
             ExpressionAttributeValues: {
                 ':active': 'false'
             },
         };
-
-        bet.active = 'false';
 
         await dynamoDb.update(params).promise();
 
@@ -156,8 +145,6 @@ class Database {
         }
 
         await Promise.all(userUpdates);
-
-        return bet;
     }
 
     async getBalances() {

@@ -13,7 +13,6 @@ const app = new Koa();
 const router = new Router();
 
 let db = null;
-const houseCoins = 10000000;
 
 app.use(async (ctx, next) => {
     try {
@@ -45,8 +44,12 @@ router.post('/take_bet', async (ctx) => {
         throw Error('Amount must be a positive whole number');
     }
 
-    if (params.amount * 4 > houseCoins) {
-        throw Error(`Unable to take your bet. Not enough house funds. Maximum bet is ${houseCoins/4}`);
+    if (params.amount > 100) {
+        throw Error('Unable to take your bet. Not enough house funds. Maximum bet is 100');
+    }
+
+    if (params.betTargetUserId === params.userId) {
+        throw Error('You cannot bet on yourself');
     }
 
     let userBalance = await db.getUserBalance(params.userId);
@@ -61,10 +64,60 @@ router.post('/take_bet', async (ctx) => {
     ctx.status = 200;
 });
 
+router.post('/game_ended', async (ctx) => {
+    let params = ctx.requireParams('playerIds', 'didWinHappen');
+
+    let activeBets = await db.activeBets();
+    if (activeBets.length === 0) {
+        ctx.body = 'No active bets';
+    }
+
+    let updates = [];
+    let endedBets = [];
+    for (ab of activeBets) {
+        if (!params.playerIds.includes(ab.betTargetUserId)) {
+            continue;
+        }
+
+        endedBets.push(ab);
+        updates.push(db.endBet(ab, params.didWinHappen));
+    }
+
+    await Promise.all(updates);
+
+    for (eb of endedBets) {
+        if (!params.playerIds.includes(eb.betTargetUserId)) {
+            continue;
+        }
+
+        const betTargetUserName = users[eb.betTargetUserId].name;
+        const result = params.didWinHappen ? 'won' : 'lost';
+
+        let winnersStr = '\n**Winners**:\n';
+        let losersStr = '\n**Losers**:\n';
+        for (b of eb.bets) {
+            const name = users[b.userId].name;
+            const str = `\t${name} (${b.amount}cc)`;
+            b.betOnWin === params.didWinHappen ? winnersStr += str : losersStr += str;
+        }
+
+        hook.sendSlackMessage({
+            attachments: [{
+                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! \:bowling:\n` + winnersStr + losersStr + '\n',
+                color: '#69553d',
+                footer_icon: 'https://www.cryptocompare.com/media/20275/etc2.png',
+                footer: `You may now bet on ${betTargetUserName}'s next game.`,
+            }],
+        });
+    }
+
+    ctx.body = `${endedBets.length} bets ended`;
+});
+
 router.post('/end_bet', async (ctx) => {
     let params = ctx.requireParams('betTargetUserId', 'didWinHappen');
 
-    let bet = await db.endBet(params.betTargetUserId, params.didWinHappen, params.userId);
+    let bet = await db.endBet(params.betTargetUserId, params.didWinHappen);
 
     const betTargetUserName = users[params.betTargetUserId].name;
     const result = params.didWinHappen === 'true'? 'won' : 'lost';
