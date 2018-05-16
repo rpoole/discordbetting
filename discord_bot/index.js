@@ -56,7 +56,7 @@ client.on('message', async msg => {
     try {
         if (command === 'bet') {
             if (args.length != 3) {
-                msg.reply('You must provide 3 options.\n\t1. Person who\'s game you will be bet on\n\t2. Bet amount\n\t3. If they will win\nExample: _!bet Zack 10 true_');
+                msg.reply('You must provide 3 options.\n\t1. Person who\'s game you will be bet on\n\t2. Bet amount\n\t3. If they will win\nExample: _!bet Zack 10 win_');
                 return;
             }
 
@@ -153,7 +153,7 @@ async function activeBets() {
         let bettingOnWin = [];
         let bettingOnLoss = [];
         b.bets.forEach( bet => {
-            bet.betOnWin === 'true' ? bettingOnWin.push(bet) : bettingOnLoss.push(bet);
+            bet.betOnWin === true ? bettingOnWin.push(bet) : bettingOnLoss.push(bet);
         });
 
         let value = '**\tBet on win**:\n';
