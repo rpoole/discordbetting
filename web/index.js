@@ -1,4 +1,4 @@
-require('dotenv').config({path: '.env'});
+require('dotenv').config();
 
 const Koa = require('koa');
 const serverless = require('serverless-http');
