@@ -202,8 +202,11 @@ async function getBalances() {
 }
 
 async function formatBetStr(bet) {
-    let name = users[bet.userId].name;
-    return `\t\t- ${name} (_${bet.amount}cc_)\n`;
+    let user = users[bet.userId];
+    if (!user) {
+        user = await client.users.get(bet.userId);
+    }
+    return `\t\t- ${user.name} (_${bet.amount}cc_)\n`;
 };
 
 function getEmbed(name, fields) {
