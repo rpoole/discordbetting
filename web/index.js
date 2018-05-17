@@ -47,7 +47,7 @@ app.use( async (ctx, next) => {
 router.post('/take_bet', async (ctx) => {
     let params = ctx.requireParams('betTargetUserId', 'userId', 'amount', 'betOnWin');
 
-    if (!/^\d+$/.test(params.amount.toString())) {
+    if (!/^\d+$/.test(params.amount.toString()) || params.amount === 0) {
         throw Error('Amount must be a positive whole number');
     }
 
