@@ -27,11 +27,36 @@
     "123934471538999296": {
         "name": "Alex"
     },
+    "102601388441235456": {
+        "name": "Skai"
+    },
+    "113811054093402114": {
+        "name": "John"
+    },
+    "111621919005999104": {
+        "name": "Scott",
+        "nickNames": [
+            "Scott Stack"
+        ]
+    },
+    "111616929071955968": {
+        "name": "Matt",
+        "nickNames": [
+            "Matt Stack"
+        ]
+    },
+    "124366969645432832": {
+        "name": "Simon",
+        "nickNames": [
+            "Opel"
+        ]
+    },
     "111616548510158848": {
         "name": "Ralph",
         "nickNames": [
             "Ralfbot",
-            "Juicebox"
+            "Juicebox",
+            "Milk Drinker"
         ]
     }
 }

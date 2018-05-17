@@ -14,7 +14,7 @@ client.on('ready', async () => {
 });
 
 const bicepzbotid = '291447176536522753';
-const commands = ['bet', 'bets', 'help', 'balances'];
+const commands = ['bet', 'bets', 'balances', 'users'];
 const userNamesToIds = Object.entries(users).reduce((obj, [k, v]) => { obj[v.name.toLowerCase()] = k; return obj; }, {});
 
 let nickNamesToId = {};
@@ -76,7 +76,7 @@ client.on('message', async msg => {
             msg.channel.send(getEmbed('Active Bets', fields));
         } else if (command === 'users') {
             let users = Object.keys(userNamesToIds);
-            msg.channel.send(`Available usernames:\n\t${users.join(', ')}`);
+            msg.channel.send(`Available usernames:\n\t${users.join('\n\t')}`);
         } else if (command === 'balances') {
             let fields = await getBalances();
             msg.channel.send(getEmbed('Balances', fields));
