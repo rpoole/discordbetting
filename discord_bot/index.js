@@ -25,7 +25,7 @@ for (let [id, u] of Object.entries(users)) {
     }
 
     for (let nn of allNames) {
-        nickNamesToId[nn] = id;
+        nickNamesToId[nn.toLowerCase()] = id;
     }
 }
 
@@ -45,7 +45,7 @@ client.on('message', async msg => {
         content.pop();
 
         let secondColStart = content.shift().indexOf('Hero');
-        let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim()] );
+        let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim().toLowerCase()] );
 
         await gameEnded(playerIds, didWinHappen);
         return;
@@ -151,7 +151,6 @@ async function activeBets() {
             value: ':(',
         }];
     }
-
 
     let fields = [];
     for (let [idx, b] of items.entries()) {
