@@ -76,7 +76,11 @@ client.on('message', async msg => {
             msg.channel.send(getEmbed('Active Bets', fields));
         } else if (command === 'users') {
             let users = Object.keys(userNamesToIds);
-            msg.channel.send(`Available usernames:\n\t${users.join('\n\t')}`);
+            let fields = [{
+                name: 'Users you may bet on',
+                value: users.map(u => '\n-\t' + u).join(''),
+            }];
+            msg.channel.send(getEmbed('Users', fields));
         } else if (command === 'balances') {
             let fields = await getBalances();
             msg.channel.send(getEmbed('Balances', fields));
