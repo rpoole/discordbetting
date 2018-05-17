@@ -13,7 +13,7 @@ client.on('ready', async () => {
 	console.info(`Logged in as ${client.user.tag}!`);
 });
 
-const bicepzbotid = '111617403556757504';
+const bicepzbotid = '291447176536522753';
 const commands = ['bet', 'bets', 'help', 'balances'];
 const userNamesToIds = Object.entries(users).reduce((obj, [k, v]) => { obj[v.name.toLowerCase()] = k; return obj; }, {});
 
@@ -30,21 +30,28 @@ for (let [id, u] of Object.entries(users)) {
 }
 
 client.on('message', async msg => {
+    if (msg.author.id === bicepzbotid && msg.embeds) {
+        const embed = msg.embeds[0];
+        if (!embed || !embed.title.includes('Win') && !embed.title.includes('Loss')) {
+            return;
+        }
+
+        const didWinHappen = embed.title.includes('Win');
+        let playerNames = [];
+        let content = embed.description.split('\n');
+
+        // remove first line and last line
+        content.shift();
+        content.pop();
+
+        let secondColStart = content.shift().indexOf('Hero');
+        let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim()] );
+
+        await gameEnded(playerIds, didWinHappen);
+        return;
+    }
+
 	let command = msg.content.split(' ')[0].substring(1);
-    //const embed = msg.embeds[0];
-    //const isWin = embed.title.includes('Win');
-
-    //let playerNames = [];
-    //let content = msg.content.split('\n');
-    //// remove first line and last line
-    //content.shift();
-    //content.pop();
-
-    //let secondColStart = content.shift().indexOf('Hero');
-    //let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim()] );
-
-    //await gameEnded(playerIds, true);
-
 	if (!commands.includes(command)) {
 		return;
 	}
