@@ -110,15 +110,34 @@ router.post('/game_ended', async (ctx) => {
 
         let winnersStr = '\n**Winners**:\n';
         let losersStr = '\n**Losers**:\n';
+        let hasBetOnWin = false;
+        let hasBetOnLose = false;
         for (b of eb.bets) {
             const name = users[b.userId].name;
-            const str = `\t${name} (${b.amount}cc)`;
+            const str = `\t${name} (${b.amount}cc)\n`;
             b.betOnWin === params.didWinHappen ? winnersStr += str : losersStr += str;
+            if (b.betOnWin) {
+                hasBetOnWin = true;
+            } else {
+                hasBetOnLose = true;
+            }
         }
 
+        if (!hasBetOnWin) {
+            winnersStr += '\tNone\n';
+        }
+
+        if (!hasBetOnLose) {
+            losersStr += '\tNone\n';
+        }
+
+        let emoji = users[eb.betTargetUserId].emoji;
+        if (!emoji) {
+            emoji = 'OSfrog';
+        }
         hook.sendSlackMessage({
             attachments: [{
-                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! \:bowling:\n` + winnersStr + losersStr + '\n',
+                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! \:${emoji}:\n` + winnersStr + losersStr + '\n\n',
                 color: '#69553d',
                 footer_icon: 'https://www.cryptocompare.com/media/20275/etc2.png',
                 footer: `You may now bet on ${betTargetUserName}'s next game.`,
@@ -127,34 +146,6 @@ router.post('/game_ended', async (ctx) => {
     }
 
     ctx.body = `${endedBets.length} bets ended`;
-});
-
-router.post('/end_bet', async (ctx) => {
-    let params = ctx.requireParams('betTargetUserId', 'didWinHappen');
-
-    let bet = await db.endBet(params.betTargetUserId, params.didWinHappen);
-
-    const betTargetUserName = users[params.betTargetUserId].name;
-    const result = params.didWinHappen === 'true'? 'won' : 'lost';
-
-    let winnersStr = '\n**Winners**:\n';
-    let losersStr = '\n**Losers**:\n';
-    for (b of bet.bets) {
-        const name = users[b.userId].name;
-        const str = `\t${name} (${b.amount}cc)\n`;
-        b.betOnWin === params.didWinHappen ? winnersStr += str : losersStr += str;
-    }
-
-    hook.sendSlackMessage({
-        attachments: [{
-            pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! \:bowling:\n` + winnersStr + losersStr + '\n',
-            color: '#69553d',
-            footer_icon: 'https://www.cryptocompare.com/media/20275/etc2.png',
-            footer: `You may now bet on ${betTargetUserName}'s next game.`,
-        }],
-    });
-
-    ctx.status = 200;
 });
 
 router.get('/balances', async (ctx) => {
