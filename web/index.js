@@ -66,7 +66,15 @@ router.post('/take_bet', async (ctx) => {
 
     let bet = await db.createOrGetBet(params.betTargetUserId);
 
-    await db.takeBet(bet.betId, params.betOnWin, params.amount, params.userId);
+    try {
+        await db.takeBet(bet.betId, params.betOnWin, params.amount, params.userId);
+    } catch (err) {
+        if (err.message && err.message === 'The conditional request failed') {
+            throw Error('You may not be twice');
+        }
+
+        throw err;
+    }
 
     ctx.status = 200;
 });
