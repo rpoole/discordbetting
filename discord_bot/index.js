@@ -194,6 +194,11 @@ async function getBalances() {
 
     let balances = JSON.parse(resp.body);
     let value = '';
+    let user = users[b.userId];
+    if (!user) {
+        user = await client.users.get(bet.userId);
+    }
+
     for (let [idx, b] of balances.entries()) {
         value += `-\t ${users[b.userId].name} _${b.balance}cc_\n`
     }
