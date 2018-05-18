@@ -1,5 +1,5 @@
 require('dotenv').config();
-const users = require('../users.json');
+const bettableUsers = require('../users.json');
 const request = require('request-promise');
 const Discord = require('discord.js');
 const client = new Discord.Client({
@@ -13,28 +13,28 @@ const baseRequest = {
 	resolveWithFullResponse: true,
 };
 
-client.on('ready', async () => {
-	console.info(`Logged in as ${client.user.tag}!`);
-});
-
-const bicepzbotid = '291447176536522753';
-const commands = ['bet', 'bets', 'balances', 'users'];
-const userNamesToIds = Object.entries(users).reduce((obj, [k, v]) => { obj[v.name.toLowerCase()] = k; return obj; }, {});
-
-let nickNamesToId = {};
-for (let [id, u] of Object.entries(users)) {
+let namesToId = {};
+for (let [id, u] of Object.entries(bettableUsers)) {
     let allNames = [u.name];
     if (u.nickNames) {
         allNames = allNames.concat(u.nickNames);
     }
 
     for (let nn of allNames) {
-        nickNamesToId[nn.toLowerCase()] = id;
+        namesToId[nn.toLowerCase()] = id;
     }
 }
 
+client.on('ready', async () => {
+	console.info(`Logged in as ${client.user.tag}!`);
+});
+
 client.on('message', async msg => {
-    if (msg.author.id === bicepzbotid && msg.embeds) {
+    if (msg.channel.guild.id !== process.env.DISCORD_SERVER_ID || msg.channel.id !== process.env.DISCORD_SERVER_CHANNEL_ID) {
+        return;
+    }
+
+    if (msg.author.id === process.env.BICEPZ_BOT_ID && msg.embeds) {
         const embed = msg.embeds[0];
         if (!embed || !embed.title.includes('Win') && !embed.title.includes('Loss')) {
             return;
@@ -49,7 +49,7 @@ client.on('message', async msg => {
         content.pop();
 
         let secondColStart = content.shift().indexOf('Hero');
-        let playerIds = content.map( s => nickNamesToId[s.substring(2, secondColStart).trim().toLowerCase()] );
+        let playerIds = content.map( s => namesToId[s.substring(2, secondColStart).trim().toLowerCase()] );
 
         await gameEnded(playerIds, didWinHappen);
         return;
@@ -59,6 +59,7 @@ client.on('message', async msg => {
         return;
     }
 
+    const commands = ['bet', 'bets', 'balances', 'users'];
 	let command = msg.content.split(' ')[0].substring(1);
 	if (!commands.includes(command)) {
 		return;
@@ -91,7 +92,7 @@ client.on('message', async msg => {
                 msg.reply('Too many arguments');
                 return;
             }
-            let users = Object.keys(userNamesToIds);
+            let users = Object.keys(namesToId);
             let fields = [{
                 name: 'Users you may bet on',
                 value: users.map(u => '\n-\t' + u).join(''),
@@ -112,7 +113,9 @@ client.on('message', async msg => {
             replyParts.push(`Reason: ${error.response.body}`);
         } else if (error instanceof BotError) {
             replyParts.push(`Reason: ${error.message}`);
-            replyParts.push(`_${error.tip}_`);
+            if (error.tip) {
+                replyParts.push(`_${error.tip}_`);
+            }
         } else {
             console.error(error);
         }
@@ -134,16 +137,46 @@ async function gameEnded(playerIds, didWinHappen) {
     console.info(`/game_ended succeeded\nStatus: ${resp.statusCode}\nBody: ${resp.body}\n`);
 }
 
-async function takeBet(betTargetUserName, amount, betOnWin, userId) {
-    if (Object.keys(userNamesToIds).map( u => u.toLowerCase()).indexOf(betTargetUserName) === -1) {
+async function takeBet() {
+    const userId = arguments[3];
+    let betTargetUserName = null;
+    let amount = null;
+    let betOnWin = null;
+
+    for (let i = 0; i < arguments.length-1; i++) {
+        let arg = arguments[i];
+        if (arg === 'win' || arg === 'lose') {
+            betOnWin = arg;
+            continue;
+        }
+
+        if (/\d+/.test(arg)) {
+            amount = arg;
+            continue;
+        }
+
+        if (/\w+/.test(arg)) {
+            betTargetUserName = arg;
+        }
+    }
+
+    if (betOnWin === null) {
+        throw new BotError('Win/lose not provided');
+    }
+
+    if (amount === null) {
+        throw new BotError('Amount not provided');
+    }
+
+    if (betTargetUserName === null) {
+        throw new BotError('User not provided');
+    }
+
+    if (Object.keys(namesToId).map( u => u.toLowerCase()).indexOf(betTargetUserName) === -1) {
         throw new BotError('Invalid bet target username', 'Try choosing a name from the !users command');
     }
 
-    if (!(betOnWin == 'win' || betOnWin == 'lose')) {
-        throw new BotError('Invalid bet outcome', 'Valid options are win or lose');
-    }
-
-    const betTargetUserId = userNamesToIds[betTargetUserName];
+    const betTargetUserId = namesToId[betTargetUserName];
     betOnWin = betOnWin === 'win' ? true : false;
 
     let resp = await request(Object.assign({
@@ -178,7 +211,8 @@ async function activeBets() {
 
     let fields = [];
     for (let [idx, b] of items.entries()) {
-        const name = `${idx+1}. ${users[b.betTargetUserId].name}'s next dota game`;
+        let username = (await getUser(b.betTargetUserId)).name;
+        const name = `${idx+1}. ${username}'s next dota game`;
 
         let bettingOnWin = [];
         let bettingOnLoss = [];
@@ -215,15 +249,8 @@ async function getBalances() {
     let balances = JSON.parse(resp.body);
     let value = '';
     for (let b of balances) {
-        let user = users[b.userId];
-        let name = null;
-        if (!user) {
-            name = await client.users.get(b.userId).username;
-        } else {
-            name = user.name;
-        }
-
-        value += `-\t ${name} _${b.balance}cc_\n`
+        let user = await getUser(b.userId);
+        value += `-\t ${user.name} _${b.balance}cc_\n`
     }
 
     return [{
@@ -233,15 +260,7 @@ async function getBalances() {
 }
 
 async function formatBetStr(bet) {
-    let user = users[bet.userId];
-    let name = null;
-
-    if (!user) {
-        name = await client.users.get(bet.userId).username;
-    } else {
-        name = user.name;
-    }
-
+    let name = (await getUser(bet.userId)).name;
     return `\t\t- ${name} (_${bet.amount}cc_)\n`;
 };
 
@@ -254,6 +273,19 @@ function getEmbed(name, fields) {
         },
         fields,
     }}
+}
+
+async function getUser(userId) {
+    if (bettableUsers[userId]) {
+        return bettableUsers[userId];
+    }
+
+    user = await client.users.get(userId);
+
+    return {
+        name: user.username,
+        nickNames: [],
+    };
 }
 
 class BotError extends Error {
