@@ -56,7 +56,7 @@ router.post('/take_bet', async (ctx) => {
     }
 
     if (params.betTargetUserId === params.userId) {
-        throw Error('You cannot bet on yourself');
+        throw Error('You\'ll probably lose anyways.');
     }
 
     let userBalance = await db.getUserBalance(params.userId);

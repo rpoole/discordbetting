@@ -55,6 +55,10 @@ client.on('message', async msg => {
         return;
     }
 
+    if (msg.content[0] !== '!') {
+        return;
+    }
+
 	let command = msg.content.split(' ')[0].substring(1);
 	if (!commands.includes(command)) {
 		return;
@@ -76,9 +80,17 @@ client.on('message', async msg => {
             let fields = await activeBets();
             msg.reply('Your bet was taken.');
         } else if (command === 'bets') {
+            if (args.length !== 0) {
+                msg.reply('Too many arguments');
+                return;
+            }
             let fields = await activeBets();
             msg.channel.send(getEmbed('Active Bets', fields));
         } else if (command === 'users') {
+            if (args.length !== 0) {
+                msg.reply('Too many arguments');
+                return;
+            }
             let users = Object.keys(userNamesToIds);
             let fields = [{
                 name: 'Users you may bet on',
@@ -86,6 +98,10 @@ client.on('message', async msg => {
             }];
             msg.channel.send(getEmbed('Users', fields));
         } else if (command === 'balances') {
+            if (args.length !== 0) {
+                msg.reply('Too many arguments');
+                return;
+            }
             let fields = await getBalances();
             msg.channel.send(getEmbed('Balances', fields));
         }
