@@ -196,11 +196,14 @@ async function getBalances() {
     let value = '';
     for (let b of balances) {
         let user = users[b.userId];
+        let name = null;
         if (!user) {
-            user = await client.users.get(bet.userId);
+            name = await client.users.get(b.userId).username;
+        } else {
+            name = user.name;
         }
 
-        value += `-\t ${users[b.userId].name} _${b.balance}cc_\n`
+        value += `-\t ${name} _${b.balance}cc_\n`
     }
 
     return [{
@@ -211,10 +214,15 @@ async function getBalances() {
 
 async function formatBetStr(bet) {
     let user = users[bet.userId];
+    let name = null;
+
     if (!user) {
-        user = await client.users.get(bet.userId);
+        name = await client.users.get(bet.userId).username;
+    } else {
+        name = user.name;
     }
-    return `\t\t- ${user.name} (_${bet.amount}cc_)\n`;
+
+    return `\t\t- ${name} (_${bet.amount}cc_)\n`;
 };
 
 function getEmbed(name, fields) {
