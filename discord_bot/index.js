@@ -2,7 +2,11 @@ require('dotenv').config();
 const users = require('../users.json');
 const request = require('request-promise');
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({
+    messageCacheMaxSize: 20,
+    messageCacheLifetime: 30,
+    messageSweepInterval: 35,
+});
 
 const baseUrl = 'http://' + process.env.BETTING_CLIENT_URL;
 const baseRequest = {
