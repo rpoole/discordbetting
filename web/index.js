@@ -132,12 +132,23 @@ router.post('/game_ended', async (ctx) => {
         }
 
         let emoji = users[eb.betTargetUserId].emoji;
-        if (!emoji) {
-            emoji = 'OSfrog';
+        if (!emoji && !params.didWinHappen) {
+            emoji = {
+                id: '284060220647538688',
+                name: 'FeelsBadMan',
+            };
+        } else {
+            emoji = {
+                id: '283668862677942273',
+                name: 'FeelsGoodMan',
+            };
         }
+
+        emoji = `<:${emoji.name}:${emoji.id}>`;
+
         hook.sendSlackMessage({
             attachments: [{
-                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! \:${emoji}:\n` + winnersStr + losersStr + '\n\n',
+                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! ${emoji}\n` + winnersStr + losersStr + '\n\n',
                 color: '#69553d',
                 footer_icon: 'https://www.cryptocompare.com/media/20275/etc2.png',
                 footer: `You may now bet on ${betTargetUserName}'s next game.`,

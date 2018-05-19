@@ -5,7 +5,10 @@
             "Zack Stack",
             "Zack Smurf"
         ],
-        "emoji": "zackface"
+        "emoji": { 
+            "id": "230917250763194368",
+            "name": "zackface"
+        }
     },
     "111617403556757504": {
         "name": "Rob"
