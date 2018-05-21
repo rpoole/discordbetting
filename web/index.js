@@ -8,6 +8,7 @@ const helpers = require('./helpers');
 const Discord = require("discord.js");
 const Database = require('./database');
 const users = require('../users.json');
+const moment = require('moment');
 
 const hook = new Discord.WebhookClient(process.env.DISCORD_WEBHOOK_ID, process.env.DISCORD_WEBHOOK_TOKEN);
 const app = new Koa();
@@ -70,7 +71,7 @@ router.post('/take_bet', async (ctx) => {
         await db.takeBet(bet.betId, params.betOnWin, params.amount, params.userId);
     } catch (err) {
         if (err.message && err.message === 'The conditional request failed') {
-            throw Error('You may not be twice');
+            throw Error('You may not bet twice');
         }
 
         throw err;
@@ -164,7 +165,7 @@ router.get('/balances', async (ctx) => {
 });
 
 router.get('/active_bets', async (ctx) => {
-    ctx.body = await db.activeBets();
+    ctx.body = await db.activeBets(parseInt(ctx.query.days_back));
 });
 
 app.use(router.routes());

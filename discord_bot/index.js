@@ -81,11 +81,12 @@ client.on('message', async msg => {
             let fields = await activeBets();
             msg.reply('Your bet was taken.');
         } else if (command === 'bets') {
-            if (args.length !== 0) {
+            if (args.length > 1) {
                 msg.reply('Too many arguments');
                 return;
             }
-            let fields = await activeBets();
+
+            let fields = await activeBets(...args);
             msg.channel.send(getEmbed('Active Bets', fields));
         } else if (command === 'users') {
             if (args.length !== 0) {
@@ -193,10 +194,18 @@ async function takeBet() {
     console.info(`/take_bet succeeded\nStatus: ${resp.statusCode}\nBody: ${resp.body}\n`);
 }
 
-async function activeBets() {
+async function activeBets(allBets) {
+    let url = '/active_bets';
+
+    if (allBets !== undefined && allBets !== 'all') {
+        throw new BotError('Invalid option', 'Provide only no argument or \'all\'');
+    } else if (allBets === undefined) {
+        url += '?days_back=3';
+    }
+
     let resp = await request(Object.assign({
         method: 'GET',
-        url: baseUrl + '/active_bets',
+        url: baseUrl + url,
     }, baseRequest));
     console.info(`/active_bets succeeded\nStatus: ${resp.statusCode}\nBody: ${resp.body}\n`);
 

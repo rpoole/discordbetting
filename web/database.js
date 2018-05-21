@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk');
 const DiscordBettingContract = require('./db_contract');
+const moment = require('moment');
 
 const DB_TABLE = process.env.DB_TABLE;
 const USERS_TABLE = process.env.USERS_TABLE;
@@ -18,17 +19,29 @@ class Database {
         this.dbContract = await new DiscordBettingContract().getInstance();
     }
 
-    async activeBets() {
+    async activeBets(numberOfDaysBack=null) {
         const params = {
             TableName: DB_TABLE,
             IndexName: 'ActiveBetsIndex',
             KeyConditionExpression: 'active = :active',
             ExpressionAttributeValues: { 
                 ':active': 'true',
-            } ,
+            },
         };
 
-        return (await dynamoDb.query(params).promise()).Items;
+        const items = (await dynamoDb.query(params).promise()).Items;
+
+        if (!numberOfDaysBack) {
+            return items;
+        }
+
+        return items.filter( i => {
+            for (let b of i.bets) {
+                if (moment().diff(moment(parseInt(b.betPlaced)), 'days') <= numberOfDaysBack) {
+                    return true;
+                }
+            }
+        });
     }
 
     async takeBet(betId, betOnWin, amount, userId) {
@@ -48,6 +61,7 @@ class Database {
                     userId: userId,
                     amount: amount,
                     betOnWin: betOnWin,
+                    betPlaced: moment().valueOf(),
                 }],
             }
         };
