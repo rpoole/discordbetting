@@ -301,6 +301,10 @@ async function getBalances() {
         value += `-\t ${user.name} _${b.balance}cc_\n`
     }
 
+    if (value.length === 0) {
+        value = 'No balances yet.';
+    }
+
     return [{
         name: 'Users that have placed bets',
         value,
