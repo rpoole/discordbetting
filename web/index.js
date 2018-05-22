@@ -71,6 +71,16 @@ router.post('/take_bet', async (ctx) => {
     ctx.status = 200;
 });
 
+router.post('/cancel_bet', async (ctx) => {
+    let params = ctx.requireParams('betTargetUserId', 'userId');
+
+    let bet = await db.activeBetFor(params.betTargetUserId);
+    console.log(bet);
+    await db.cancelBet(bet.betId, params.userId);
+
+    ctx.status = 200;
+});
+
 router.post('/game_ended', async (ctx) => {
     let params = ctx.requireParams('playerIds', 'didWinHappen', 'duration');
 
@@ -94,10 +104,9 @@ router.post('/game_ended', async (ctx) => {
             continue;
         }
 
-        let nonCanceledBets = {};
         for (let [idx, b] of Object.entries(ab.bets)) {
             const betPlaced = moment(parseInt(b.betPlaced));
-            if (betPlaced.isAfter(gameStarted)) {
+            if (betPlaced.isAfter(gameStarted) || params.playerIds.includes(b.userId)) {
                 cancels.push(db.cancelBet(ab.betId, b.userId));
                 b.canceled = true;
             }
@@ -115,7 +124,7 @@ router.post('/game_ended', async (ctx) => {
         const betTargetUserName = users[eb.betTargetUserId].name;
         const result = params.didWinHappen ? 'won' : 'lost';
 
-        let canceledStr = '\n**Canceled (Bet after game started)**:\n';
+        let canceledStr = '\n**Canceled**:\n';
         let winnersStr = '\n**Winners**:\n';
         let losersStr = '\n**Losers**:\n';
         let hasWin = false;

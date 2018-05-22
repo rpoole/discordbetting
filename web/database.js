@@ -35,6 +35,7 @@ class Database {
             return items;
         }
 
+        // TODO move this to dynamoDb
         return items.filter( i => {
             for (let b of Object.values(i.bets)) {
                 if (moment().diff(moment(parseInt(b.betPlaced)), 'days') <= numberOfDaysBack) {
@@ -70,7 +71,7 @@ class Database {
             },
             UpdateExpression: 'ADD balance :balance',
             ExpressionAttributeValues: {
-                ':balance': amount,
+                ':balance': parseInt(amount),
             },
         };
 
@@ -117,10 +118,10 @@ class Database {
     }
 
     async createOrGetBet(betTargetUserId) {
-        let activeBets = await this.activeBetFor(betTargetUserId);
+        let activeBet = await this.activeBetFor(betTargetUserId);
 
-        if (activeBets.length === 1) {
-            return activeBets[0];
+        if (activeBet) {
+            return activeBet;
         }
 
         const betInfo = `${betTargetUserId}'s next game`;
@@ -154,7 +155,12 @@ class Database {
             } ,
         };
 
-        return (await dynamoDb.query(params).promise()).Items;
+        let items = (await dynamoDb.query(params).promise()).Items;
+        if (items.length === 1) {
+            return items[0];
+        } else {
+            return null;
+        }
     }
 
     async endBet(bet, didWinHappen) {

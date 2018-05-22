@@ -61,7 +61,7 @@ client.on('message', async msg => {
         return;
     }
 
-    const commands = ['bet', 'bets', 'balances', 'users'];
+    const commands = ['bet', 'cancelBet', 'bets', 'balances', 'users'];
 	let command = msg.content.split(' ')[0].substring(1);
 	if (!commands.includes(command)) {
 		return;
@@ -73,7 +73,7 @@ client.on('message', async msg => {
 
     try {
         if (command === 'bet') {
-            if (args.length != 3) {
+            if (args.length !== 3) {
                 msg.reply('You must provide 3 options.\n\t1. Person who\'s game you will be bet on\n\t2. Bet amount\n\t3. If they will win\nExample: _!bet Zack 10 win_');
                 return;
             }
@@ -90,6 +90,15 @@ client.on('message', async msg => {
 
             let fields = await activeBets(...args);
             msg.channel.send(getEmbed('Active Bets', fields));
+        } else if (command === 'cancelBet') {
+            if (args.length !== 1) {
+                msg.reply('You must provide 1 argument');
+                return;
+            }
+
+            args.push(msg.author.id);
+            let response = await cancelBet(...args);
+            msg.reply(response);
         } else if (command === 'users') {
             if (args.length !== 0) {
                 msg.reply('Too many arguments');
@@ -139,6 +148,27 @@ async function gameEnded(playerIds, didWinHappen, duration) {
     }, baseRequest));
 
     console.info(`/game_ended succeeded\nStatus: ${resp.statusCode}\nBody: ${resp.body}\n`);
+}
+
+async function cancelBet(betTargetUserName, userId) {
+    if (Object.keys(namesToId).map( u => u.toLowerCase()).indexOf(betTargetUserName) === -1) {
+        throw new BotError('Invalid bet target username', 'Try choosing a name from the !users command');
+    }
+
+    const betTargetUserId = namesToId[betTargetUserName];
+
+    let resp = await request(Object.assign({
+        method: 'POST',
+        url: baseUrl + '/cancel_bet',
+        json: {
+            betTargetUserId,
+            userId,
+        },
+    }, baseRequest));
+
+    console.info(`/cancel_bet succeeded\nStatus: ${resp.statusCode}\nBody: ${resp.body}\n`);
+
+    return 'Your bet was canceled. You were refunded your bet amount.';
 }
 
 async function takeBet() {
