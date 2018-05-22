@@ -99,9 +99,16 @@ class Database {
                 '#bets': 'bets',
                 '#betterId': userId,
             },
+            ReturnValues: 'UPDATED_OLD',
         };
 
-        await dynamoDb.update(dbParams).promise();
+        let updated = await dynamoDb.update(dbParams).promise();
+        let oldAmount = 0; 
+        if (updated.Attributes) {
+            oldAmount = updated.Attributes.bets[userId].amount;
+        }
+
+        const balanceChange = amount - oldAmount;
 
         const userParams = {
             TableName: USERS_TABLE,
@@ -110,7 +117,7 @@ class Database {
             },
             UpdateExpression: 'ADD balance :balance',
             ExpressionAttributeValues: {
-                ':balance': -amount,
+                ':balance': -balanceChange,
             },
         };
 

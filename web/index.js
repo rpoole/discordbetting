@@ -75,7 +75,6 @@ router.post('/cancel_bet', async (ctx) => {
     let params = ctx.requireParams('betTargetUserId', 'userId');
 
     let bet = await db.activeBetFor(params.betTargetUserId);
-    console.log(bet);
     await db.cancelBet(bet.betId, params.userId);
 
     ctx.status = 200;
