@@ -67,6 +67,10 @@ contract('DiscordBetting', (accounts) => {
                 assert.equal(bet.numberOfBetters, 1);
             });
 
+            it('should not allow a 0 bet', async () => {
+                await assertRevert(instance.takeBet(id, true, 0));
+            });
+
             it('should increase the balance when a bet is taken', async () => {
                 let balance = (await instance.balance.call()).toNumber();
                 assert.equal(1, balance);
@@ -86,6 +90,9 @@ contract('DiscordBetting', (accounts) => {
                 betterAmount = (await instance.getBetterAmountForBet(id, account0)).toNumber();
                 assert.equal(2, betterAmount);
             });
+
+            it('should reduce the balance, if the bet is reduced');
+            it('should increase the balance, if the bet is increased');
 
             it('should increase the number of bets for a started bet', async () => {
                 await instance.takeBet(id, true, 1, {from: account1})
@@ -151,7 +158,14 @@ contract('DiscordBetting', (accounts) => {
             await assertRevert(instance.withdraw(betId));
         });
 
-        it('should withdraw if game was lost and bet was on a loss');
+        it('should withdraw if game was lost and bet was on a loss', async () => {
+            await instance.takeBet(betId, false, betAmount, {from: account1});
+            await instance.endBet(betId, false);
+            let result = await instance.withdraw(betId, {from: account1});
+            let amount = result.logs[0].args.amount.toNumber();
+            assert.equal(amount, betAmount*2);
+
+        });
 
         it('should withdraw winnings', async () => {
             await instance.endBet(betId, true);
@@ -167,6 +181,49 @@ contract('DiscordBetting', (accounts) => {
             await instance.withdraw(betId);
             const balance = (await instance.balance.call()).toNumber();
             assert.equal(betAmount2 - betAmount, balance);
+        });
+
+        it('should delete the bet if number of betters is 0', async () => {
+            await instance.endBet(betId, true);
+            await instance.withdraw(betId);
+            let bet = structs.Bet(await instance.bets.call(betId));
+            assert.equal(bet.numberOfBetters, 0);
+            assert.equal(bet.id, 0);
+        });
+    });
+
+    describe('cancelBet', async () => {
+        let betId;
+        const betAmount = 5;
+
+        beforeEach(async () => {
+            let result = await instance.newBet('info');
+            betId = result.logs[0].args.betId.toNumber();
+            await instance.takeBet(betId, true, betAmount);
+        });
+
+        it('should not allow a cancel if there was no bet', async () => {
+            await assertRevert(instance.cancelBet(betId+1));
+        });
+
+        it('should not allow a cancel if there was no bet from a better', async () => {
+            await assertRevert(instance.cancelBet(betId, {from: account1}));
+        });
+
+        it('should decrease the balance by the bet amount', async () => {
+            let balance = (await instance.balance.call()).toNumber();
+            assert.equal(balance, betAmount);
+            await instance.cancelBet(betId)
+            balance = (await instance.balance.call()).toNumber();
+            assert.equal(balance, 0);
+        });
+
+        it('should set the better amount to 0', async () => {
+            let betterAmount = (await instance.getBetterAmountForBet(betId, account0)).toNumber();
+            assert.equal(betterAmount, betAmount);
+            await instance.cancelBet(betId)
+            betterAmount = (await instance.getBetterAmountForBet(betId, account0)).toNumber();
+            assert.equal(betterAmount, 0);
         });
     });
 });

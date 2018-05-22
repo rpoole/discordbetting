@@ -36,12 +36,45 @@ class Database {
         }
 
         return items.filter( i => {
-            for (let b of i.bets) {
+            for (let b of Object.values(i.bets)) {
                 if (moment().diff(moment(parseInt(b.betPlaced)), 'days') <= numberOfDaysBack) {
                     return true;
                 }
             }
         });
+    }
+
+    async cancelBet(betId, userId) {
+        await this.dbContract.cancelBet(betId);
+
+        const dbParams = {
+            TableName: DB_TABLE,
+            Key: {
+                betId: betId,
+            },
+            UpdateExpression: 'REMOVE #bets.#betterId',
+            ExpressionAttributeNames: {
+                '#bets': 'bets',
+                '#betterId': userId,
+            },
+            ReturnValues: 'UPDATED_OLD',
+        };
+
+        let removed = await dynamoDb.update(dbParams).promise();
+        const amount = removed.Attributes.bets[userId].amount;
+
+        const userParams = {
+            TableName: USERS_TABLE,
+            Key: {
+                userId: userId,
+            },
+            UpdateExpression: 'ADD balance :balance',
+            ExpressionAttributeValues: {
+                ':balance': amount,
+            },
+        };
+
+        await dynamoDb.update(userParams).promise();
     }
 
     async takeBet(betId, betOnWin, amount, userId) {
@@ -52,18 +85,19 @@ class Database {
             Key: {
                 betId: betId,
             },
-            UpdateExpression: 'set bets = list_append(bets, :better), betterIds = list_append(betterIds, :betterIdList)',
-            ConditionExpression: 'not contains (betterIds, :betterId)',
+            UpdateExpression: 'set #bets.#betterId = :better',
             ExpressionAttributeValues: {
-                ':betterIdList': [userId],
-                ':betterId': userId,
-                ':better': [{
+                ':better': {
                     userId: userId,
                     amount: amount,
                     betOnWin: betOnWin,
                     betPlaced: moment().valueOf(),
-                }],
-            }
+                },
+            },
+            ExpressionAttributeNames: {
+                '#bets': 'bets',
+                '#betterId': userId,
+            },
         };
 
         await dynamoDb.update(dbParams).promise();
@@ -97,8 +131,7 @@ class Database {
             active: 'true',
             betInfo: betInfo,
             betTargetUserId: betTargetUserId,
-            bets: [],
-            betterIds: [],
+            bets: {},
         };
 
         const params = {
@@ -141,7 +174,11 @@ class Database {
         await dynamoDb.update(params).promise();
 
         let userUpdates = [];
-        for (let better of bet.bets) {
+        for (let better of Object.values(bet.bets)) {
+            if (better.canceled) {
+                continue;
+            }
+
             if (better.betOnWin === didWinHappen) {
                 const params = {
                     TableName: USERS_TABLE,

@@ -66,22 +66,13 @@ router.post('/take_bet', async (ctx) => {
     }
 
     let bet = await db.createOrGetBet(params.betTargetUserId);
-
-    try {
-        await db.takeBet(bet.betId, params.betOnWin, params.amount, params.userId);
-    } catch (err) {
-        if (err.message && err.message === 'The conditional request failed') {
-            throw Error('You may not bet twice');
-        }
-
-        throw err;
-    }
+    await db.takeBet(bet.betId, params.betOnWin, params.amount, params.userId);
 
     ctx.status = 200;
 });
 
 router.post('/game_ended', async (ctx) => {
-    let params = ctx.requireParams('playerIds', 'didWinHappen');
+    let params = ctx.requireParams('playerIds', 'didWinHappen', 'duration');
 
     let activeBets = await db.activeBets();
     if (activeBets.length === 0) {
@@ -89,47 +80,74 @@ router.post('/game_ended', async (ctx) => {
     }
 
     let updates = [];
+    let cancels = [];
     let endedBets = [];
-    for (ab of activeBets) {
+
+    let duration = params.duration.split(':').reverse().map(d => parseInt(d));
+    let gameStarted = moment().subtract(duration[0], 'seconds').subtract(duration[1], 'minutes');
+    if (duration.length === 3) {
+        gameStarted = gameStarted.subtract(duration[2], 'hours');
+    }
+
+    for (let ab of activeBets) {
         if (!params.playerIds.includes(ab.betTargetUserId)) {
             continue;
+        }
+
+        let nonCanceledBets = {};
+        for (let [idx, b] of Object.entries(ab.bets)) {
+            const betPlaced = moment(parseInt(b.betPlaced));
+            if (betPlaced.isAfter(gameStarted)) {
+                cancels.push(db.cancelBet(ab.betId, b.userId));
+                b.canceled = true;
+            }
         }
 
         endedBets.push(ab);
         updates.push(db.endBet(ab, params.didWinHappen));
     }
 
+    await Promise.all(cancels);
     await Promise.all(updates);
 
-    for (eb of endedBets) {
-        if (!params.playerIds.includes(eb.betTargetUserId)) {
-            continue;
-        }
 
+    for (let eb of endedBets) {
         const betTargetUserName = users[eb.betTargetUserId].name;
         const result = params.didWinHappen ? 'won' : 'lost';
 
+        let canceledStr = '\n**Canceled (Bet after game started)**:\n';
         let winnersStr = '\n**Winners**:\n';
         let losersStr = '\n**Losers**:\n';
-        let hasBetOnWin = false;
-        let hasBetOnLose = false;
-        for (b of eb.bets) {
+        let hasWin = false;
+        let hasLoss = false;
+        let hasCanceled = false;
+        for (let b of Object.values(eb.bets)) {
             const name = users[b.userId].name;
             const str = `\t${name} (${b.amount}cc)\n`;
-            b.betOnWin === params.didWinHappen ? winnersStr += str : losersStr += str;
-            if (b.betOnWin) {
-                hasBetOnWin = true;
+
+            if (b.canceled) {
+                canceledStr += str;
+                hasCanceled = true;
+                continue;
+            } else if (b.betOnWin === params.didWinHappen) {
+                winnersStr += str;
+                hasWin = true;
             } else {
-                hasBetOnLose = true;
+                losersStr += str;
+                hasLoss = true;
             }
         }
 
-        if (!hasBetOnWin) {
+        if (!hasWin) {
             winnersStr += '\tNone\n';
         }
 
-        if (!hasBetOnLose) {
+        if (!hasLoss) {
             losersStr += '\tNone\n';
+        }
+
+        if (!hasCanceled) {
+            canceledStr += '\tNone\n';
         }
 
         let emoji = users[eb.betTargetUserId].emoji;
@@ -138,7 +156,7 @@ router.post('/game_ended', async (ctx) => {
                 id: '284060220647538688',
                 name: 'FeelsBadMan',
             };
-        } else {
+        } else if (!emoji) {
             emoji = {
                 id: '283668862677942273',
                 name: 'FeelsGoodMan',
@@ -149,7 +167,7 @@ router.post('/game_ended', async (ctx) => {
 
         hook.sendSlackMessage({
             attachments: [{
-                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! ${emoji}\n` + winnersStr + losersStr + '\n\n',
+                pretext: `***Bet finished!***\n${betTargetUserName} ${result} his game! ${emoji}\n` + winnersStr + losersStr + canceledStr + '\n\n',
                 color: '#69553d',
                 footer_icon: 'https://www.cryptocompare.com/media/20275/etc2.png',
                 footer: `You may now bet on ${betTargetUserName}'s next game.`,

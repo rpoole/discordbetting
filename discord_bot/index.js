@@ -34,11 +34,13 @@ client.on('message', async msg => {
         return;
     }
 
-    if (msg.author.id === process.env.BICEPZ_BOT_ID && msg.embeds) {
+    if (msg.author.id === process.env.BICEPZ_BOT_ID && msg.embeds.length > 0) {
         const embed = msg.embeds[0];
         if (!embed || !embed.title.includes('Win') && !embed.title.includes('Loss')) {
             return;
         }
+
+        const duration = embed.title.split('-')[2].trim();
 
         const didWinHappen = embed.title.includes('Win');
         let playerNames = [];
@@ -51,7 +53,7 @@ client.on('message', async msg => {
         let secondColStart = content.shift().indexOf('Hero');
         let playerIds = content.map( s => namesToId[s.substring(2, secondColStart).trim().toLowerCase()] );
 
-        await gameEnded(playerIds, didWinHappen);
+        await gameEnded(playerIds, didWinHappen, duration);
         return;
     }
 
@@ -125,13 +127,14 @@ client.on('message', async msg => {
     }
 });
 
-async function gameEnded(playerIds, didWinHappen) {
+async function gameEnded(playerIds, didWinHappen, duration) {
     let resp = await request(Object.assign({
         method: 'POST',
         url: baseUrl + '/game_ended',
         json: {
             playerIds,
             didWinHappen,
+            duration,
         },
     }, baseRequest));
 
@@ -225,19 +228,25 @@ async function activeBets(allBets) {
 
         let bettingOnWin = [];
         let bettingOnLoss = [];
-        b.bets.forEach( bet => {
+        Object.values(b.bets).forEach( bet => {
             bet.betOnWin === true ? bettingOnWin.push(bet) : bettingOnLoss.push(bet);
         });
 
-        let value = '**\tBet on win**:\n';
-        for (let bet of bettingOnWin) {
-            value += await formatBetStr(bet);
-        };
+        let value = '';
+        if (bettingOnWin.length > 0) {
+            value = '**\tBet on win**:\n';
+            for (let bet of bettingOnWin) {
+                value += await formatBetStr(bet);
+            };
+        }
 
-        value += '**\tBet on loss**:\n';
-        for (bet of bettingOnLoss) {
-            value += await formatBetStr(bet);
-        };
+        if (bettingOnLoss.length > 0) {
+            value += '**\tBet on loss**:\n';
+            for (bet of bettingOnLoss) {
+                value += await formatBetStr(bet);
+            };
+        }
+
 
         fields.push({
             name,

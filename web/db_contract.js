@@ -27,6 +27,10 @@ class DiscordBetting {
     async endBet(betId, didWinHappen) {
         await this.instance.endBet(betId, didWinHappen, {from: this.web3.eth.accounts[0], gas:4712388});
     }
+
+    async cancelBet(betId) {
+        await this.instance.cancelBet(betId, {from: this.web3.eth.accounts[0], gas:4712388});
+    }
 }
 
 module.exports = DiscordBetting;
