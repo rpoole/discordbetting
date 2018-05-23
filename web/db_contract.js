@@ -1,10 +1,10 @@
 const Web3 = require('web3');
-const contract = require("truffle-contract");
+const contract = require('truffle-contract');
 const DiscordBettingContractJSON = require('../eth/build/contracts/DiscordBetting.json');
 
 class DiscordBetting {
     async getInstance() {
-        let provider = new Web3.providers.HttpProvider("http://localhost:8545");
+        let provider = new Web3.providers.HttpProvider('http://localhost:8545');
         this.web3 = new Web3(provider);
 
         let DBContract = contract(DiscordBettingContractJSON);

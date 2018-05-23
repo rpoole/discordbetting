@@ -5,7 +5,7 @@ const serverless = require('serverless-http');
 const Router = require('koa-router');
 const bodyParser = require('koa-bodyparser');
 const helpers = require('./helpers');
-const Discord = require("discord.js");
+const Discord = require('discord.js');
 const Database = require('./database');
 const users = require('../users.json');
 const moment = require('moment');
@@ -103,7 +103,7 @@ router.post('/game_ended', async (ctx) => {
             continue;
         }
 
-        for (let [idx, b] of Object.entries(ab.bets)) {
+        for (let b of Object.values(ab.bets)) {
             const betPlaced = moment(parseInt(b.betPlaced));
             if (betPlaced.isAfter(gameStarted) || params.playerIds.includes(b.userId)) {
                 cancels.push(db.cancelBet(ab.betId, b.userId));

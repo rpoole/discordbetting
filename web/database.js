@@ -15,6 +15,7 @@ AWS.config.update({
 let dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 class Database {
+
     async init() {
         this.dbContract = await new DiscordBettingContract().getInstance();
     }

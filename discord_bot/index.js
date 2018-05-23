@@ -10,7 +10,7 @@ const client = new Discord.Client({
 
 const baseUrl = 'http://' + process.env.BETTING_CLIENT_URL;
 const baseRequest = {
-	resolveWithFullResponse: true,
+    resolveWithFullResponse: true,
 };
 
 let namesToId = {};
@@ -26,7 +26,7 @@ for (let [id, u] of Object.entries(bettableUsers)) {
 }
 
 client.on('ready', async () => {
-	console.info(`Logged in as ${client.user.tag}!`);
+    console.info(`Logged in as ${client.user.tag}!`);
 });
 
 client.on('message', async msg => {
@@ -43,7 +43,6 @@ client.on('message', async msg => {
         const duration = embed.title.split('-')[2].trim();
 
         const didWinHappen = embed.title.includes('Win');
-        let playerNames = [];
         let content = embed.description.split('\n');
 
         // remove first line and last line
@@ -61,14 +60,14 @@ client.on('message', async msg => {
         return;
     }
 
-    const commands = ['bet', 'cancelBet', 'bets', 'balances', 'users'];
-	let command = msg.content.split(' ')[0].substring(1);
-	if (!commands.includes(command)) {
-		return;
-	}
+    const commands = ['bet', 'bets', 'balances', 'users'];
+    let command = msg.content.split(' ')[0].substring(1);
+    if (!commands.includes(command)) {
+        return;
+    }
 
-	let args = msg.content.split(' ');
-	args.shift();
+    let args = msg.content.split(' ');
+    args.shift();
     args = args.map( a => a.toLowerCase() );
 
     try {
@@ -80,7 +79,6 @@ client.on('message', async msg => {
 
             args.push(msg.author.id);
             await takeBet(...args);
-            let fields = await activeBets();
             msg.reply('Your bet was taken.');
         } else if (command === 'bets') {
             if (args.length > 1) {
@@ -104,7 +102,8 @@ client.on('message', async msg => {
                 msg.reply('Too many arguments');
                 return;
             }
-            let users = Object.keys(namesToId);
+
+            let users = Object.values(bettableUsers).map(b => b.name);
             let fields = [{
                 name: 'Users you may bet on',
                 value: users.map(u => '\n-\t' + u).join(''),
@@ -267,14 +266,14 @@ async function activeBets(allBets) {
             value = '**\tBet on win**:\n';
             for (let bet of bettingOnWin) {
                 value += await formatBetStr(bet);
-            };
+            }
         }
 
         if (bettingOnLoss.length > 0) {
             value += '**\tBet on loss**:\n';
-            for (bet of bettingOnLoss) {
+            for (let bet of bettingOnLoss) {
                 value += await formatBetStr(bet);
-            };
+            }
         }
 
 
@@ -282,7 +281,7 @@ async function activeBets(allBets) {
             name,
             value,
         });
-    };
+    }
 
     return fields;
 }
@@ -298,7 +297,7 @@ async function getBalances() {
     let value = '';
     for (let b of balances) {
         let user = await getUser(b.userId);
-        value += `-\t ${user.name} _${b.balance}cc_\n`
+        value += `-\t ${user.name} _${b.balance}cc_\n`;
     }
 
     if (value.length === 0) {
@@ -314,7 +313,7 @@ async function getBalances() {
 async function formatBetStr(bet) {
     let name = (await getUser(bet.userId)).name;
     return `\t\t- ${name} (_${bet.amount}cc_)\n`;
-};
+}
 
 function getEmbed(name, fields) {
     return {embed: {
@@ -324,7 +323,7 @@ function getEmbed(name, fields) {
             icon_url: 'https://www.cryptocompare.com/media/20275/etc2.png',
         },
         fields,
-    }}
+    }};
 }
 
 async function getUser(userId) {
@@ -332,7 +331,7 @@ async function getUser(userId) {
         return bettableUsers[userId];
     }
 
-    user = await client.users.get(userId);
+    let user = await client.users.get(userId);
 
     return {
         name: user.username,

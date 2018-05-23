@@ -8,7 +8,7 @@ let assertRevert = require('./helpers/assert_revert');
 let structs = require('./helpers/structs');
 let DiscordBetting = artifacts.require('DiscordBetting');
 
-contract('DiscordBetting', (accounts) => {
+contract('DiscordBetting', () => {
     let instance;
     let account0 = web3.eth.accounts[0];
     let account1 = web3.eth.accounts[1];
@@ -55,7 +55,7 @@ contract('DiscordBetting', (accounts) => {
             let bet;
 
             beforeEach(async () => {
-                await instance.takeBet(id, true, 1)
+                await instance.takeBet(id, true, 1);
                 bet = structs.Bet(await instance.bets.call(id));
             });
 
@@ -95,7 +95,7 @@ contract('DiscordBetting', (accounts) => {
             it('should increase the balance, if the bet is increased');
 
             it('should increase the number of bets for a started bet', async () => {
-                await instance.takeBet(id, true, 1, {from: account1})
+                await instance.takeBet(id, true, 1, {from: account1});
 
                 bet = structs.Bet(await instance.bets.call(id));
                 assert.equal(bet.numberOfBetters, 2);
@@ -109,7 +109,7 @@ contract('DiscordBetting', (accounts) => {
             let result = await instance.newBet('info');
             let id = result.logs[0].args.betId.toNumber();
 
-            results = await instance.endBet(id, true);
+            let results = await instance.endBet(id, true);
             assert.equal(id, results.logs[0].args.betId.toNumber());
             assert.isOk(results.logs[0].args.won);
 
@@ -213,7 +213,7 @@ contract('DiscordBetting', (accounts) => {
         it('should decrease the balance by the bet amount', async () => {
             let balance = (await instance.balance.call()).toNumber();
             assert.equal(balance, betAmount);
-            await instance.cancelBet(betId)
+            await instance.cancelBet(betId);
             balance = (await instance.balance.call()).toNumber();
             assert.equal(balance, 0);
         });
@@ -221,7 +221,7 @@ contract('DiscordBetting', (accounts) => {
         it('should set the better amount to 0', async () => {
             let betterAmount = (await instance.getBetterAmountForBet(betId, account0)).toNumber();
             assert.equal(betterAmount, betAmount);
-            await instance.cancelBet(betId)
+            await instance.cancelBet(betId);
             betterAmount = (await instance.getBetterAmountForBet(betId, account0)).toNumber();
             assert.equal(betterAmount, 0);
         });
