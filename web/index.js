@@ -147,15 +147,15 @@ router.post('/game_ended', async (ctx) => {
         }
 
         if (!hasWin) {
-            winnersStr += '\tNone\n';
+            winnersStr = '';
         }
 
         if (!hasLoss) {
-            losersStr += '\tNone\n';
+            losersStr = '';
         }
 
         if (!hasCanceled) {
-            canceledStr += '\tNone\n';
+            canceledStr = '';
         }
 
         let emoji = users[eb.betTargetUserId].emoji;
